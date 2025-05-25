@@ -11,14 +11,47 @@ A Java-based poker game implementation featuring both console and graphical user
   - Console-based text interface
   - Graphical user interface with card visualization
 
-## How to Run
+## How to Play on Your Computer
 
-1. Make sure you have Java installed on your system
-2. Execute the run script:
+### Building the Executable JAR
+
+To create an executable JAR file that you can run on any computer with Java:
+
+1. Build the executable JAR:
+   ```
+   ./build.sh
+   ```
+   This creates a file called `pokerclone.jar` in the main directory.
+
+2. Copy this JAR file along with the launcher scripts (`run_game.bat` for Windows, `run_game.sh` for Mac/Linux) to your computer.
+
+### Running the Game
+
+#### On Windows:
+- Double-click the `run_game.bat` file
+- Alternatively, open a command prompt and run:
+  ```
+  java -jar pokerclone.jar
+  ```
+
+#### On Mac/Linux:
+- Make the script executable: `chmod +x run_game.sh`
+- Run the script: `./run_game.sh`
+- Alternatively: `java -jar pokerclone.jar`
+
+### Requirements
+- Java Runtime Environment (JRE) 8 or higher
+- Download Java from: https://www.java.com/download/
+
+## Development
+
+To run the game in development mode:
+
+1. Execute the run script:
    ```
    ./run.sh
    ```
-3. Choose between console mode or GUI mode when prompted
+2. Choose between console mode or GUI mode when prompted
 
 ## Game Rules
 

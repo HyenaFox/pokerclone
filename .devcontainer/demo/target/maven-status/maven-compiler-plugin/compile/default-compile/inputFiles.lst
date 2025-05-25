@@ -1,3 +1,13 @@
+/workspaces/pokerclone/.devcontainer/demo/src/main/java/com/example/AIPlayer.java
+/workspaces/pokerclone/.devcontainer/demo/src/main/java/com/example/Player.java
 /workspaces/pokerclone/.devcontainer/demo/src/main/java/com/example/Card.java
+/workspaces/pokerclone/.devcontainer/demo/src/main/java/com/example/HandEvaluationDemo.java
+/workspaces/pokerclone/.devcontainer/demo/src/main/java/com/example/GameEngine.java
 /workspaces/pokerclone/.devcontainer/demo/src/main/java/com/example/Suit.java
-/workspaces/pokerclone/.devcontainer/demo/src/main/java/com/example/App.java
+/workspaces/pokerclone/.devcontainer/demo/src/main/java/com/example/Main.java
+/workspaces/pokerclone/.devcontainer/demo/src/main/java/com/example/PokerLauncher.java
+/workspaces/pokerclone/.devcontainer/demo/src/main/java/com/example/gui/PokerGUI.java
+/workspaces/pokerclone/.devcontainer/demo/src/main/java/com/example/gui/GUIPlayer.java
+/workspaces/pokerclone/.devcontainer/demo/src/main/java/com/example/Deck.java
+/workspaces/pokerclone/.devcontainer/demo/src/main/java/com/example/DeckManager.java
+/workspaces/pokerclone/.devcontainer/demo/src/main/java/com/example/HumanPlayer.java
