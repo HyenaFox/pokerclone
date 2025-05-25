@@ -16,4 +16,24 @@ public class Card {
     public int getRank() {
         return this.rank;
     }
+    
+    public String getRankName() {
+        switch (rank) {
+            case 1:
+                return "Ace";
+            case 11:
+                return "Jack";
+            case 12:
+                return "Queen";
+            case 13:
+                return "King";
+            default:
+                return String.valueOf(rank);
+        }
+    }
+    
+    @Override
+    public String toString() {
+        return getRankName() + " of " + suit;
+    }
 }

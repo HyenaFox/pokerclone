@@ -1,8 +1,8 @@
 package com.example;
 
 public enum Suit {
-    CLUBS,
-    DIAMONDS,
-    HEARTS,
-    SPADES
+    Clubs,
+    Diamonds,
+    Hearts,
+    Spades
 }
