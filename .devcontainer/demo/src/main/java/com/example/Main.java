@@ -1,7 +1,10 @@
 package com.example;
 
 import com.example.Player.PlayerAction;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Scanner;
 
 /**
@@ -203,62 +206,179 @@ public class Main {
     private static void playBettingRound() {
         System.out.println("\n--- Betting Round ---");
         
-        int currentBet = 0;
+        // Initialize variables for tracking betting
+        int lastRaisePlayerIndex = -1;
+        List<Player> activePlayers = new ArrayList<>(gameEngine.getPlayers());
+        List<Player> foldedPlayers = new ArrayList<>();
+        Map<Player, Integer> playerBets = new HashMap<>();
         
-        for (Player player : gameEngine.getPlayers()) {
-            List<Card> hand = gameEngine.getPlayerHand(player);
+        // Track highest bet of the round
+        int highestBet = 0;
+        
+        // Continue betting until all active players have either called or folded
+        int currentIndex = 0;
+        Player currentPlayer;
+        boolean bettingComplete = false;
+        
+        while (!bettingComplete) {
+            if (activePlayers.size() <= 1) {
+                // Only one player left - they win by default
+                System.out.println("Only one active player remains.");
+                break;
+            }
+            
+            // Get the current player
+            currentPlayer = activePlayers.get(currentIndex);
+            int playerBet = playerBets.getOrDefault(currentPlayer, 0);
+            int toCall = highestBet - playerBet;
+            
+            // Display betting information
+            System.out.println("\nCurrent pot: " + gameEngine.getPotAmount());
+            System.out.println("Current bet: " + highestBet);
+            System.out.println(currentPlayer.getName() + "'s turn");
+            
+            if (toCall > 0) {
+                System.out.println("Amount to call: " + toCall);
+            }
+            
+            System.out.println(currentPlayer.getName() + " has " + currentPlayer.getChipCount() + " chips");
+            
+            // Get the player's hand
+            List<Card> hand = gameEngine.getPlayerHand(currentPlayer);
             List<Card> community = gameEngine.getCommunityCards();
             
             // Get player action
-            PlayerAction action = player.getAction(hand, community, currentBet, gameEngine.getPotAmount());
+            PlayerAction action = currentPlayer.getAction(hand, community, toCall, gameEngine.getPotAmount());
             
             // Process the action
             switch (action) {
                 case FOLD:
-                    System.out.println(player.getName() + " folds.");
-                    // In a complete implementation, folded players would be tracked
+                    System.out.println(currentPlayer.getName() + " folds.");
+                    foldedPlayers.add(currentPlayer);
+                    activePlayers.remove(currentPlayer);
+                    currentIndex--; // Adjust for the removed player
                     break;
                     
                 case CHECK:
-                    System.out.println(player.getName() + " checks.");
+                    if (toCall > 0) {
+                        System.out.println("Cannot check when there's a bet. Treating as FOLD.");
+                        foldedPlayers.add(currentPlayer);
+                        activePlayers.remove(currentPlayer);
+                        currentIndex--;
+                    } else {
+                        System.out.println(currentPlayer.getName() + " checks.");
+                    }
                     break;
                     
                 case CALL:
-                    if (currentBet > 0) {
-                        System.out.println(player.getName() + " calls " + currentBet + " chips.");
-                        player.removeChips(currentBet);
-                        gameEngine.addToPot(currentBet);
+                    if (toCall > 0) {
+                        // Ensure player has enough chips
+                        int callAmount = Math.min(toCall, currentPlayer.getChipCount());
+                        
+                        if (callAmount == currentPlayer.getChipCount()) {
+                            System.out.println(currentPlayer.getName() + " calls and is ALL IN with " + callAmount + " chips!");
+                        } else {
+                            System.out.println(currentPlayer.getName() + " calls " + callAmount + " chips.");
+                        }
+                        
+                        currentPlayer.removeChips(callAmount);
+                        gameEngine.addToPot(callAmount);
+                        playerBets.put(currentPlayer, playerBet + callAmount);
+                    } else {
+                        // Treated as a check
+                        System.out.println(currentPlayer.getName() + " checks.");
                     }
                     break;
                     
                 case RAISE:
-                    int raiseAmount = currentBet + 20; // Simple fixed raise for demo
-                    System.out.println(player.getName() + " raises to " + raiseAmount + " chips.");
-                    player.removeChips(raiseAmount);
+                    // Ask for raise amount
+                    int minRaise = toCall + 20; // Minimum raise
+                    int raiseAmount = minRaise;
+                    
+                    // If this is a human player, get custom raise amount
+                    if (currentPlayer instanceof HumanPlayer) {
+                        System.out.println("Minimum raise: " + minRaise);
+                        System.out.print("Enter raise amount: ");
+                        
+                        try {
+                            raiseAmount = scanner.nextInt();
+                            while (raiseAmount < minRaise || raiseAmount > currentPlayer.getChipCount()) {
+                                if (raiseAmount < minRaise) {
+                                    System.out.println("Raise must be at least " + minRaise);
+                                } else {
+                                    System.out.println("You don't have enough chips. Maximum: " + currentPlayer.getChipCount());
+                                }
+                                System.out.print("Enter raise amount: ");
+                                raiseAmount = scanner.nextInt();
+                            }
+                        } catch (Exception e) {
+                            // Default to minimum raise if invalid input
+                            raiseAmount = minRaise;
+                        }
+                    } else {
+                        // AI player - randomize raise amount between min and twice min
+                        int maxRaise = Math.min(currentPlayer.getChipCount(), minRaise * 2);
+                        raiseAmount = minRaise + (int)(Math.random() * (maxRaise - minRaise + 1));
+                    }
+                    
+                    // Process the raise
+                    System.out.println(currentPlayer.getName() + " raises to " + raiseAmount + " chips.");
+                    currentPlayer.removeChips(raiseAmount);
                     gameEngine.addToPot(raiseAmount);
-                    currentBet = raiseAmount;
+                    playerBets.put(currentPlayer, playerBet + raiseAmount);
+                    highestBet = playerBet + raiseAmount;
+                    lastRaisePlayerIndex = activePlayers.indexOf(currentPlayer);
                     break;
                     
                 case ALL_IN:
-                    int allInAmount = player.getChipCount();
-                    System.out.println(player.getName() + " goes ALL IN with " + allInAmount + " chips!");
-                    player.removeChips(allInAmount);
+                    int allInAmount = currentPlayer.getChipCount();
+                    System.out.println(currentPlayer.getName() + " goes ALL IN with " + allInAmount + " chips!");
+                    currentPlayer.removeChips(allInAmount);
                     gameEngine.addToPot(allInAmount);
-                    if (allInAmount > currentBet) {
-                        currentBet = allInAmount;
+                    
+                    int newBet = playerBet + allInAmount;
+                    playerBets.put(currentPlayer, newBet);
+                    
+                    if (newBet > highestBet) {
+                        highestBet = newBet;
+                        lastRaisePlayerIndex = activePlayers.indexOf(currentPlayer);
                     }
                     break;
             }
             
+            // Move to the next player
+            currentIndex = (currentIndex + 1) % activePlayers.size();
+            
+            // Check if betting is complete
+            if (lastRaisePlayerIndex == -1) {
+                // No one has raised, betting is complete when we've gone around the table once
+                if (currentIndex == 0) {
+                    bettingComplete = true;
+                }
+            } else {
+                // Someone has raised, betting is complete when we come back to that player
+                if (currentIndex == (lastRaisePlayerIndex + 1) % activePlayers.size()) {
+                    bettingComplete = true;
+                }
+            }
+            
             // Pause briefly to let players see the action
             try {
-                Thread.sleep(1000);
+                Thread.sleep(500);
             } catch (InterruptedException e) {
                 // Ignore
             }
         }
         
-        System.out.println("Betting round complete.");
+        // Display betting round summary
+        System.out.println("\nBetting round complete.");
+        System.out.println("Current pot: " + gameEngine.getPotAmount() + " chips");
+        
+        // Show player chip counts
+        for (Player p : gameEngine.getPlayers()) {
+            System.out.println(p.getName() + " has " + p.getChipCount() + " chips");
+        }
+        
         System.out.println("--------------------");
     }
     

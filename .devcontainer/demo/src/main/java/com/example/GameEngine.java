@@ -19,6 +19,13 @@ public class GameEngine {
     private List<Card> communityCards;
     private GameState gameState;
     
+    // Betting related fields
+    private int currentBetAmount;
+    private Map<Player, Integer> playerBets;
+    private List<Player> activePlayers;
+    private List<Player> allInPlayers;
+    private List<Player> foldedPlayers;
+    
     /**
      * Enum representing the various states of the poker game.
      */
@@ -44,6 +51,10 @@ public class GameEngine {
         this.smallBlindAmount = 5; // Default small blind
         this.bigBlindAmount = 10;  // Default big blind
         this.potAmount = 0;
+        this.playerBets = new HashMap<>();
+        this.activePlayers = new ArrayList<>();
+        this.allInPlayers = new ArrayList<>();
+        this.foldedPlayers = new ArrayList<>();
     }
     
     /**
@@ -107,6 +118,13 @@ public class GameEngine {
         communityCards.clear();
         potAmount = 0;
         
+        // Reset betting-related fields
+        currentBetAmount = 0;
+        playerBets.clear();
+        activePlayers.clear();
+        allInPlayers.clear();
+        foldedPlayers.clear();
+        
         // Rotate dealer and blinds positions
         if (dealerIndex == -1) {
             dealerIndex = 0;  // First game
@@ -145,12 +163,55 @@ public class GameEngine {
     }
     
     /**
-     * Collects the small and big blinds.
+     * Collects the small and big blinds from players.
      */
     private void collectBlinds() {
-        // This would interact with player chips/money in a real implementation
-        // For now we just add to the pot
-        potAmount += smallBlindAmount + bigBlindAmount;
+        // Reset betting tracking for new round
+        currentBetAmount = 0;
+        playerBets.clear();
+        activePlayers.clear();
+        allInPlayers.clear();
+        foldedPlayers.clear();
+        
+        // Add all players to active players list
+        activePlayers.addAll(players);
+        
+        // Get small blind player
+        Player smallBlindPlayer = players.get(smallBlindIndex);
+        int smallBlindActual = Math.min(smallBlindAmount, smallBlindPlayer.getChipCount());
+        
+        // Collect small blind
+        smallBlindPlayer.removeChips(smallBlindActual);
+        potAmount += smallBlindActual;
+        playerBets.put(smallBlindPlayer, smallBlindActual);
+        System.out.println(smallBlindPlayer.getName() + " posts small blind: " + smallBlindActual);
+        
+        // Check if player is all-in
+        if (smallBlindActual == smallBlindPlayer.getChipCount()) {
+            allInPlayers.add(smallBlindPlayer);
+            activePlayers.remove(smallBlindPlayer);
+            System.out.println(smallBlindPlayer.getName() + " is ALL-IN");
+        }
+        
+        // Get big blind player
+        Player bigBlindPlayer = players.get(bigBlindIndex);
+        int bigBlindActual = Math.min(bigBlindAmount, bigBlindPlayer.getChipCount());
+        
+        // Collect big blind
+        bigBlindPlayer.removeChips(bigBlindActual);
+        potAmount += bigBlindActual;
+        playerBets.put(bigBlindPlayer, bigBlindActual);
+        System.out.println(bigBlindPlayer.getName() + " posts big blind: " + bigBlindActual);
+        
+        // Set current bet to the big blind
+        currentBetAmount = bigBlindActual;
+        
+        // Check if player is all-in
+        if (bigBlindActual == bigBlindPlayer.getChipCount()) {
+            allInPlayers.add(bigBlindPlayer);
+            activePlayers.remove(bigBlindPlayer);
+            System.out.println(bigBlindPlayer.getName() + " is ALL-IN");
+        }
     }
     
     /**
@@ -639,4 +700,125 @@ public class GameEngine {
             potAmount += amount;
         }
     }
+    
+    /**
+     * Gets the current bet amount.
+     * 
+     * @return The current bet amount
+     */
+    public int getCurrentBetAmount() {
+        return currentBetAmount;
+    }
+    
+    /**
+     * Places a bet for the current player.
+     * 
+     * @param player The player placing the bet
+     * @param amount The bet amount
+     * @return true if the bet was placed successfully
+     */
+    public boolean placeBet(Player player, int amount) {
+        if (gameState != GameState.PRE_FLOP && gameState != GameState.FLOP && 
+            gameState != GameState.TURN && gameState != GameState.RIVER) {
+            return false;
+        }
+        
+        if (!players.contains(player) || foldedPlayers.contains(player)) {
+            return false;
+        }
+        
+        // Ensure bet is at least the current bet amount or a full raise
+        int playerBet = playerBets.getOrDefault(player, 0);
+        if (amount < currentBetAmount - playerBet) {
+            return false; // Bet too low
+        }
+        
+        // Update the player's bet
+        playerBets.put(player, playerBet + amount);
+        potAmount += amount;
+        
+        // Update current bet amount (highest bet on the table)
+        currentBetAmount = 0;
+        for (int bet : playerBets.values()) {
+            if (bet > currentBetAmount) {
+                currentBetAmount = bet;
+            }
+        }
+        
+        return true;
+    }
+    
+    /**
+     * Folds the current player's hand.
+     * 
+     * @param player The player folding
+     * @return true if the player folded successfully
+     */
+    public boolean foldHand(Player player) {
+        if (gameState != GameState.PRE_FLOP && gameState != GameState.FLOP && 
+            gameState != GameState.TURN && gameState != GameState.RIVER) {
+            return false;
+        }
+        
+        if (!players.contains(player) || foldedPlayers.contains(player)) {
+            return false;
+        }
+        
+        foldedPlayers.add(player);
+        activePlayers.remove(player);
+        
+        return true;
+    }
+    
+    /**
+     * Calls the current bet for the player.
+     * 
+     * @param player The player calling the bet
+     * @return true if the call was successful
+     */
+    public boolean callBet(Player player) {
+        if (gameState != GameState.PRE_FLOP && gameState != GameState.FLOP && 
+            gameState != GameState.TURN && gameState != GameState.RIVER) {
+            return false;
+        }
+        
+        if (!players.contains(player) || foldedPlayers.contains(player)) {
+            return false;
+        }
+        
+        int playerBet = playerBets.getOrDefault(player, 0);
+        int callAmount = currentBetAmount - playerBet;
+        
+        if (callAmount <= 0) {
+            return true; // No need to call, bet is covered
+        }
+        
+        // Here we would also check if the player has enough chips to call
+        
+        // Update the player's bet
+        playerBets.put(player, playerBet + callAmount);
+        potAmount += callAmount;
+        
+        return true;
+    }
+    
+    /**
+     * Checks if all players have either folded or gone all-in.
+     * 
+     * @return true if only one player is left active (all others folded or all-in)
+     */
+    public boolean isShowdownReady() {
+        int activeCount = 0;
+        
+        for (Player player : players) {
+            if (!foldedPlayers.contains(player) && !allInPlayers.contains(player)) {
+                activeCount++;
+            }
+        }
+        
+        // Only one player active means showdown can begin
+        return (activeCount == 1);
+    }
+    
+
 }

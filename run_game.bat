@@ -1,14 +1,15 @@
 @echo off
-REM filepath: /workspaces/pokerclone/run_game.bat
-REM Windows launcher for the Poker Clone game
+REM Launcher script for Poker Clone game
 
-echo Starting Poker Clone...
-java -jar pokerclone.jar
-
+REM Check for Java installation
+java -version >nul 2>&1
 if %ERRORLEVEL% NEQ 0 (
-    echo.
-    echo Error running the game. Please make sure Java is installed on your computer.
-    echo You can download Java from: https://www.java.com/download/
-    pause
+    echo Java not found. Please install Java to run this game.
     exit /b 1
 )
+
+REM Run the game
+java -jar pokerclone.jar
+
+REM Exit with the same code as the Java process
+exit /b %ERRORLEVEL%

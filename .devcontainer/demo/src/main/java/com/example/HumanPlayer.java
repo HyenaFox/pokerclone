@@ -55,7 +55,6 @@ public class HumanPlayer implements Player {
         System.out.println("\n--- " + name + "'s turn ---");
         System.out.println("Your chips: " + chipCount);
         System.out.println("Current pot: " + potAmount);
-        System.out.println("Current bet to call: " + currentBet);
         
         // Show player's cards
         System.out.println("\nYour hand:");
@@ -71,21 +70,43 @@ public class HumanPlayer implements Player {
             }
         }
         
-        // Get player's action
+        // Get player's action with appropriate options based on the situation
         System.out.println("\nChoose your action:");
+        
+        // Determine available actions based on betting situation
+        boolean canCheck = (currentBet == 0);
+        
+        // Show available actions
         System.out.println("1: Fold");
-        System.out.println("2: Check/Call");
-        System.out.println("3: Raise");
-        System.out.println("4: All-in");
+        
+        if (canCheck) {
+            System.out.println("2: Check");
+        } else {
+            System.out.println("2: Call " + currentBet + " chips");
+        }
+        
+        // Show raise option if player has enough chips
+        if (chipCount > currentBet + 1) {
+            System.out.println("3: Raise");
+        }
+        
+        System.out.println("4: All-in (" + chipCount + " chips)");
         
         int choice;
         do {
-            System.out.print("Enter your choice (1-4): ");
+            System.out.print("Enter your choice: ");
             while (!scanner.hasNextInt()) {
-                System.out.print("Invalid input. Enter a number (1-4): ");
+                System.out.print("Invalid input. Enter a number: ");
                 scanner.next();
             }
             choice = scanner.nextInt();
+            
+            // Validate choice based on available options
+            if (choice == 3 && chipCount <= currentBet + 1) {
+                System.out.println("You don't have enough chips to raise.");
+                choice = 0; // Invalid choice
+            }
+            
         } while (choice < 1 || choice > 4);
         
         // Return the appropriate action
@@ -93,7 +114,7 @@ public class HumanPlayer implements Player {
             case 1:
                 return PlayerAction.FOLD;
             case 2:
-                return currentBet == 0 ? PlayerAction.CHECK : PlayerAction.CALL;
+                return canCheck ? PlayerAction.CHECK : PlayerAction.CALL;
             case 3:
                 return PlayerAction.RAISE;
             case 4:
